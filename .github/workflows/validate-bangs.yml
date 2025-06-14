@@ -1,0 +1,43 @@
+name: Validate bangs.json
+
+on:
+  pull_request:
+    paths:
+      - 'bangs.json'
+
+jobs:
+  validate_bangs_json:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Validate bangs.json syntax and structure
+      run: |
+        # Validate JSON syntax
+        jq empty bangs.json
+
+        # Check it's an object
+        if [ "$(jq 'type' bangs.json)" != "\"object\"" ]; then
+          echo "bangs.json is not a JSON object"
+          exit 1
+        fi
+
+        # Check keys start with '!'
+        invalid_keys=$(jq -r 'keys[] | select(test("^!") | not)' bangs.json)
+        if [ -n "$invalid_keys" ]; then
+          echo "The following keys do not start with '!':"
+          echo "$invalid_keys"
+          exit 1
+        fi
+
+        # Check all values are strings
+        invalid_values=$(jq -r '.[] | select(type != "string")' bangs.json)
+        if [ -n "$invalid_values" ]; then
+          echo "Some values are not strings:"
+          echo "$invalid_values"
+          exit 1
+        fi
+
+      shell: bash

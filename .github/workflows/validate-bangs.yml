@@ -19,7 +19,7 @@ jobs:
         jq empty bangs.json
 
         # Check it's an object
-        if [ "$(jq 'type' bangs.json)" != "\"object\"" ]; then
+        if [ "$(jq -r 'type' bangs.json)" != "object" ]; then
           echo "bangs.json is not a JSON object"
           exit 1
         fi
@@ -40,4 +40,11 @@ jobs:
           exit 1
         fi
 
+        # Check URLs start with http:// or https://
+        invalid_urls=$(jq -r '.[]' bangs.json | grep -vE '^https?://')
+        if [ -n "$invalid_urls" ]; then
+          echo "The following URLs are invalid (must start with http:// or https://):"
+          echo "$invalid_urls"
+          exit 1
+        fi
       shell: bash

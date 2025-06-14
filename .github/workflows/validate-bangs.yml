@@ -16,35 +16,40 @@ jobs:
     - name: Validate bangs.json syntax and structure
       run: |
         # Validate JSON syntax
-        jq empty bangs.json
+        if ! jq empty bangs.json; then
+          echo "::error::bangs.json is not valid JSON."
+          exit 1
+        fi
 
         # Check it's an object
         if [ "$(jq -r 'type' bangs.json)" != "object" ]; then
-          echo "bangs.json is not a JSON object"
+          echo "::error::bangs.json is not a JSON object."
           exit 1
         fi
 
         # Check keys start with '!'
         invalid_keys=$(jq -r 'keys[] | select(test("^!") | not)' bangs.json)
         if [ -n "$invalid_keys" ]; then
-          echo "The following keys do not start with '!':"
+          echo "::error::The following keys do not start with '!':"
           echo "$invalid_keys"
           exit 1
         fi
 
         # Check all values are strings
-        invalid_values=$(jq -r '.[] | select(type != "string")' bangs.json)
-        if [ -n "$invalid_values" ]; then
-          echo "Some values are not strings:"
-          echo "$invalid_values"
+        non_string_values=$(jq -r 'keys[] as $k | if .[$k] | type != "string" then $k else empty end' bangs.json)
+        if [ -n "$non_string_values" ]; then
+          echo "::error::The following keys have non-string values:"
+          echo "$non_string_values"
           exit 1
         fi
 
         # Check URLs start with http:// or https://
-        invalid_urls=$(jq -r '.[]' bangs.json | grep -vE '^https?://')
+        invalid_urls=$(jq -r '.[] | select(startswith("http://") or startswith("https://") | not)' bangs.json)
         if [ -n "$invalid_urls" ]; then
-          echo "The following URLs are invalid (must start with http:// or https://):"
+          echo "::error::The following URLs are invalid (must start with http:// or https://):"
           echo "$invalid_urls"
           exit 1
         fi
+
+        echo "bangs.json is valid!"
       shell: bash

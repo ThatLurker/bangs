@@ -1,0 +1,47 @@
+name: Update README with Bangs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bangs.json'
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Update README
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+
+          const bangs = JSON.parse(fs.readFileSync('bangs.json', 'utf8'));
+
+          const bangList = Object.entries(bangs)
+            .map(([key, url]) => `- \`${key}\` → ${url}`)
+            .join('\n');
+
+          const readme = fs.readFileSync('README.md', 'utf8');
+          const updated = readme.replace(
+            /<!-- BANGS_START -->([\s\S]*?)<!-- BANGS_END -->/,
+            `<!-- BANGS_START -->\n${bangList}\n<!-- BANGS_END -->`
+          );
+
+          fs.writeFileSync('README.md', updated);
+          EOF
+
+      - name: Commit changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git diff --cached --quiet || git commit -m "Update README with current bang list"
+          git push

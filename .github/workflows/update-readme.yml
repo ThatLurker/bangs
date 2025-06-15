@@ -1,47 +1,52 @@
-name: Update README with Bangs
+name: Update README in PRs
 
 on:
-  push:
-    branches: [main]
+  pull_request:
     paths:
       - 'bangs.json'
+    types: [opened, synchronize]
 
 jobs:
   update-readme:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout PR branch
         uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
 
-      - name: Update README
+      - name: Update README.md with bangs list
         run: |
           node <<'EOF'
           const fs = require('fs');
-
           const bangs = JSON.parse(fs.readFileSync('bangs.json', 'utf8'));
 
           const bangList = Object.entries(bangs)
             .map(([key, url]) => `- \`${key}\` → ${url}`)
             .join('\n');
 
-          const readme = fs.readFileSync('README.md', 'utf8');
+          const readmePath = 'README.md';
+          const readme = fs.readFileSync(readmePath, 'utf8');
+
           const updated = readme.replace(
             /<!-- BANGS_START -->([\s\S]*?)<!-- BANGS_END -->/,
             `<!-- BANGS_START -->\n${bangList}\n<!-- BANGS_END -->`
           );
 
-          fs.writeFileSync('README.md', updated);
+          fs.writeFileSync(readmePath, updated);
           EOF
 
-      - name: Commit changes
+      - name: Commit updated README
         run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add README.md
-          git diff --cached --quiet || git commit -m "Update README with current bang list"
+          git diff --quiet || git commit -m "chore: auto-update README with new bangs"
           git push

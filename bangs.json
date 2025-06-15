@@ -1,6 +1,7 @@
 {
   "!gh": "https://github.com/search?q=%s",
   "!yt": "https://www.youtube.com/results?search_query=%s",
+  "!wiki": "https://en.wikipedia.org/w/index.php?search=%s",
   "!perp": "https://www.perplexity.ai/search?q=%s",
   "!chatgpt": "https://chatgpt.com/?q=%s",
   "!chat": "https://chatgpt.com/?q=%s",
